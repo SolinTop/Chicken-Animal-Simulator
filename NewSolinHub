@@ -171,6 +171,31 @@ TabMain:CreateToggle({ Name="Auto Dummies (Trainee) ⚔️", CurrentValue=false,
 TabMain:CreateToggle({ Name="Auto Dummies 5k ⚔️", CurrentValue=false, Callback=function(v) AF.dummies5k=v if v then task.spawn(farm5kDummies) end end })
 TabMain:CreateToggle({ Name="Auto Bosses 🐉", CurrentValue=false, Callback=function(v) AF.bosses=v if v then task.spawn(farmBosses) end end })
 
+--// ====== TAB: PVP ======
+local TabPVP = Window:CreateTab("PvP 🛡️", 6034509995)
+TabPVP:CreateToggle({ Name="Kill Aura ⚔️", CurrentValue=false, Callback=function(v) PVP.killAura=v end })
+TabPVP:CreateToggle({ Name="Orbit Player 🔄", CurrentValue=false, Callback=function(v)
+    PVP.orbit=v
+    if v and not currentTarget then
+        local _, _, myHRP = myChar()
+        currentTarget = getClosestPlayer(myHRP, 200)
+        if currentTarget then task.spawn(function() orbitAndHit(currentTarget) end) end
+    end
+end })
+TabPVP:CreateToggle({ Name="Auto TP to Player 🌀", CurrentValue=false, Callback=function(v)
+    PVP.autoTP=v
+    if v then task.spawn(autoTPLoop) end
+end })
+
+--// ====== TAB: STUFF ======
+local TabStuff = Window:CreateTab("Stuff 🎁", 6034509995)
+TabStuff:CreateSection("Utility")
+TabStuff:CreateButton({ Name="Rejoin 🔄", Callback=function() TeleportService:Teleport(game.PlaceId, player) end })
+TabStuff:CreateInput({
+    Name="Set WalkSpeed 💨", PlaceholderText="es. 16, 50, 100...", RemoveTextAfterFocusLost=true,
+    Callback=function(text) local v=tonumber(text) if v and player.Character and player.Character:FindFirstChild("Humanoid") then player.Character.Humanoid.WalkSpeed=v end end
+})
+
 --// ====== TAB: EXTRAS ======
 local TabExtras = Window:CreateTab("Extras ✨", 6034509995)
 TabExtras:CreateSection("Gadget")
@@ -201,16 +226,7 @@ TabExtras:CreateToggle({
 TabExtras:CreateButton({ Name="Free Fireball 🔥 (placeholder)", Callback=function() end })
 TabExtras:CreateButton({ Name="Free Radio 📻 (placeholder)", Callback=function() end })
 
---// ====== TAB: STUFF ======
-local TabStuff = Window:CreateTab("Stuff 🎁", 6034509995)
-TabStuff:CreateSection("Utility")
-TabStuff:CreateButton({ Name="Rejoin 🔄", Callback=function() TeleportService:Teleport(game.PlaceId, player) end })
-TabStuff:CreateInput({
-    Name="Set WalkSpeed 💨", PlaceholderText="es. 16, 50, 100...", RemoveTextAfterFocusLost=true,
-    Callback=function(text) local v=tonumber(text) if v and player.Character and player.Character:FindFirstChild("Humanoid") then player.Character.Humanoid.WalkSpeed=v end end
-})
-
---// ====== CLAN ======
+--// ====== TAB: CLAN ======
 local TabClan = Window:CreateTab("Clan 👑", 6034509995)
 TabClan:CreateSection("Join")
 local clanInput = ""
