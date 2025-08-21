@@ -6,13 +6,13 @@ local TeleportService    = game:GetService("TeleportService")
 local RunService         = game:GetService("RunService")
 local player             = Players.LocalPlayer
 
--- Remote attacchi (nome preso dal tuo gioco)
+-- Remote attacchi
 local attackRemote = ReplicatedStorage:WaitForChild("jdskhfsIIIllliiIIIdchgdIiIIIlIlIli")
 
 -- Cartelle utili
 local map           = Workspace:WaitForChild("MAP")
 local dummiesFolder = map:WaitForChild("dummies")
-local folder5k      = map:FindFirstChild("5k_dummies") -- può non esistere in alcune mappe, gestito sotto
+local folder5k      = map:FindFirstChild("5k_dummies")
 
 local bossesList = { "ROCKY","Griffin","BOOSBEAR","BOSSDEER","CENTAUR","CRABBOSS","DragonGiraffe","LavaGorilla" }
 
@@ -20,7 +20,7 @@ local bossesList = { "ROCKY","Griffin","BOOSBEAR","BOSSDEER","CENTAUR","CRABBOSS
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Solin Hub 👑",
+    Name = "Solin Hub Test",
     LoadingTitle = "Script Hub",
     LoadingSubtitle = "By: Solin",
     ConfigurationSaving = { Enabled = true, FolderName = "SolinHubConfig", FileName = "MainConfig" },
@@ -70,10 +70,10 @@ end
 --// ====== LOOP FLAGS ======
 local AF = { coins=false, dummies=false, dummies5k=false, bosses=false }
 local PVP = { killAura=false, orbit=false, autoTP=false }
-local currentTarget -- Player target per PvP
+local currentTarget
 local orbitSpeed = 35
 local orbitRadius = 5
-local orbitHeight = -4 -- “sotto” al bersaglio come richiesto
+local orbitHeight = -4
 local superFastDelay = 0.03
 
 --// ====== AUTO FARM FUNZIONI ======
@@ -81,9 +81,7 @@ local function autoCoins()
     while AF.coins do
         local events = ReplicatedStorage:FindFirstChild("Events")
         local coinEvent = events and events:FindFirstChild("CoinEvent")
-        if coinEvent then
-            coinEvent:FireServer()
-        end
+        if coinEvent then coinEvent:FireServer() end
         task.wait(1)
     end
 end
@@ -91,26 +89,16 @@ end
 local function findAnyDummy()
     for _, d in ipairs(dummiesFolder:GetChildren()) do
         local hum = getAliveHumanoid(d)
-        if d.Name == "Dummy" and hum then
-            return hum
-        end
+        if d.Name == "Dummy" and hum then return hum end
     end
 end
 
 local function find5kDummyHum()
-    -- fallback 1: cartella 5k_dummies
     if folder5k and folder5k.Parent then
         for _, d in ipairs(folder5k:GetChildren()) do
             local hum = getAliveHumanoid(d)
             if hum then return hum end
         end
-    end
-    -- fallback 2: nome specifico (esempio che mi hai dato Dummy2)
-    local ok, path = pcall(function()
-        return map:WaitForChild("5k_dummies", 1):WaitForChild("Dummy2", 1):WaitForChild("Humanoid", 1)
-    end)
-    if ok and path and path.Parent and path.Health > 0 then
-        return path
     end
     return nil
 end
@@ -138,9 +126,7 @@ local function farmBosses()
             for _, name in ipairs(bossesList) do
                 local boss = npcFolder:FindFirstChild(name)
                 local hum = getAliveHumanoid(boss)
-                if hum then
-                    attackRemote:FireServer(hum, 5)
-                end
+                if hum then attackRemote:FireServer(hum, 5) end
             end
         end
         task.wait(1)
@@ -151,19 +137,16 @@ end
 local function orbitAndHit(targetPlr)
     while PVP.orbit do
         if not targetPlr or not targetPlr.Character then break end
-        local myC, myHum, myHRP = myChar()
+        local _, _, myHRP = myChar()
         local trgHRP = targetPlr.Character:FindFirstChild("HumanoidRootPart")
         local trgHum = getAliveHumanoid(targetPlr.Character)
         if not myHRP or not trgHRP or not trgHum then break end
 
-        -- Posizionamento orbit (velocissimo, sotto al player)
         local t = tick()*orbitSpeed
         local offset = Vector3.new(math.cos(t)*orbitRadius, orbitHeight, math.sin(t)*orbitRadius)
         myHRP.CFrame = CFrame.new(trgHRP.Position + offset)
 
-        -- Kill Aura velocissima sul target
         attackRemote:FireServer(trgHum, 5)
-
         task.wait(superFastDelay)
     end
 end
@@ -181,47 +164,16 @@ local function autoTPLoop()
     end
 end
 
---// ====== TAB: MAIN (Auto Farm) ======
+--// ====== TAB: MAIN ======
 local TabMain = Window:CreateTab("Main ⚙️", 6034509995)
+TabMain:CreateToggle({ Name="Auto Coins 💰", CurrentValue=false, Callback=function(v) AF.coins=v if v then task.spawn(autoCoins) end end })
+TabMain:CreateToggle({ Name="Auto Dummies (Trainee) ⚔️", CurrentValue=false, Callback=function(v) AF.dummies=v if v then task.spawn(farmDummies) end end })
+TabMain:CreateToggle({ Name="Auto Dummies 5k ⚔️", CurrentValue=false, Callback=function(v) AF.dummies5k=v if v then task.spawn(farm5kDummies) end end })
+TabMain:CreateToggle({ Name="Auto Bosses 🐉", CurrentValue=false, Callback=function(v) AF.bosses=v if v then task.spawn(farmBosses) end end })
 
-local colMainLeft  = TabMain:CreateSection("Farm • Toggle")
-local colMainRight = TabMain:CreateSection("Farm • Opzioni")
-
-TabMain:CreateToggle({
-    Name = "Auto Coins 💰",
-    CurrentValue = false,
-    Callback = function(v)
-        AF.coins = v
-        if v then task.spawn(autoCoins) end
-    end
-})
-
-TabMain:CreateToggle({
-    Name = "Auto Dummies (Trainee) ⚔️",
-    CurrentValue = false,
-    Callback = function(v)
-        AF.dummies = v
-        if v then task.spawn(farmDummies) end
-    end
-})
-
-TabMain:CreateToggle({
-    Name = "Auto Dummies 5k ⚔️",
-    CurrentValue = false,
-    Callback = function(v)
-        AF.dummies5k = v
-        if v then task.spawn(farm5kDummies) end
-    end
-})
-
-TabMain:CreateToggle({
-    Name = "Auto Bosses 🐉",
-    CurrentValue = false,
-    Callback = function(v)
-        AF.bosses = v
-        if v then task.spawn(farmBosses) end
-    end
-})
+--// ====== TAB: EXTRAS ======
+local TabExtras = Window:CreateTab("Extras ✨", 6034509995)
+TabExtras:CreateSection("Gadget")
 
 -- Chicken Shooter 🐔🔫
 local chickenLoop = false
@@ -232,11 +184,9 @@ TabExtras:CreateToggle({
         chickenLoop = state
         if state then
             task.spawn(function()
-                local replicatedStorage = game:GetService("ReplicatedStorage")
-                local chickenEvent = replicatedStorage:FindFirstChild("ChickenEvent")
+                local chickenEvent = ReplicatedStorage:FindFirstChild("ChickenEvent")
                 local event = chickenEvent and chickenEvent:FindFirstChild("RemoteEvent")
                 if not event then warn("ChickenEvent.RemoteEvent non trovato!") return end
-
                 local args = { { action = "shoot" } }
                 while chickenLoop do
                     for i = 1, 250 do event:FireServer(unpack(args)) end
@@ -247,173 +197,36 @@ TabExtras:CreateToggle({
     end
 })
 
-
---// ====== TAB: PVP ======
-local TabPvP = Window:CreateTab("PvP 🛡️", 6034509995)
-
-local secPvPLeft  = TabPvP:CreateSection("Combat")
-local secPvPRight = TabPvP:CreateSection("Target / Movement")
-
--- Target dropdown (non ricarica la UI, solo setta la var)
-local function refreshTargetList()
-    local names = {}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player then table.insert(names, p.Name) end
-    end
-    return names
-end
-
-local targetDropdown = TabPvP:CreateDropdown({
-    Name = "Select Target 🎯",
-    Options = refreshTargetList(),
-    CurrentOption = {},
-    MultipleOptions = false,
-    Callback = function(chosen)
-        local name = (typeof(chosen)=="table" and chosen[1]) or chosen
-        currentTarget = Players:FindFirstChild(name)
-    end
-})
-
--- Aggiorna lista se join/leave
-Players.PlayerAdded:Connect(function()
-    task.wait(0.5)
-    targetDropdown:Refresh(refreshTargetList(), true)
-end)
-Players.PlayerRemoving:Connect(function()
-    task.wait(0.5)
-    targetDropdown:Refresh(refreshTargetList(), true)
-    if currentTarget and not Players:FindFirstChild(currentTarget.Name) then
-        currentTarget = nil
-    end
-end)
-
--- Orbit + Kill Aura velocissima (toggle unico)
-TabPvP:CreateToggle({
-    Name = "Orbit + Kill Aura ⚡",
-    CurrentValue = false,
-    Callback = function(v)
-        PVP.orbit = v
-        if v then
-            if not currentTarget then
-                -- se non hai selezionato target, prendo il più vicino
-                local _, _, myHRP = myChar()
-                currentTarget = getClosestPlayer(myHRP, 200)
-            end
-            if currentTarget then
-                task.spawn(function() orbitAndHit(currentTarget) end)
-            end
-        end
-    end
-})
-
--- TP istantaneo al target (one-shot)
-TabPvP:CreateButton({
-    Name = "TP to Target 🌀",
-    Callback = function()
-        if currentTarget and currentTarget.Character then
-            local _, _, myHRP = myChar()
-            local trgHRP = currentTarget.Character:FindFirstChild("HumanoidRootPart")
-            if myHRP and trgHRP then
-                myHRP.CFrame = trgHRP.CFrame * CFrame.new(0, 0, 3)
-            end
-        end
-    end
-})
-
--- Auto TP (segue il target)
-TabPvP:CreateToggle({
-    Name = "Auto TP (Follow) 🔁",
-    CurrentValue = false,
-    Callback = function(v)
-        PVP.autoTP = v
-        if v then task.spawn(autoTPLoop) end
-    end
-})
-
--- Slider raggio/speed/altezza per l’orbit (controlli rapidi)
-TabPvP:CreateSlider({
-    Name = "Orbit Radius",
-    Range = {2, 15},
-    Increment = 1,
-    CurrentValue = orbitRadius,
-    Callback = function(val) orbitRadius = val end
-})
-TabPvP:CreateSlider({
-    Name = "Orbit Speed",
-    Range = {10, 80},
-    Increment = 1,
-    CurrentValue = orbitSpeed,
-    Callback = function(val) orbitSpeed = val end
-})
-TabPvP:CreateSlider({
-    Name = "Orbit Height (sotto = -)",
-    Range = {-10, 10},
-    Increment = 1,
-    CurrentValue = orbitHeight,
-    Callback = function(val) orbitHeight = val end
-})
+-- altri gadget placeholder
+TabExtras:CreateButton({ Name="Free Fireball 🔥 (placeholder)", Callback=function() end })
+TabExtras:CreateButton({ Name="Free Radio 📻 (placeholder)", Callback=function() end })
 
 --// ====== TAB: STUFF ======
 local TabStuff = Window:CreateTab("Stuff 🎁", 6034509995)
 TabStuff:CreateSection("Utility")
-
-TabStuff:CreateButton({
-    Name = "Rejoin 🔄",
-    Callback = function()
-        TeleportService:Teleport(game.PlaceId, player)
-    end
-})
-
--- Speed a scelta manuale
+TabStuff:CreateButton({ Name="Rejoin 🔄", Callback=function() TeleportService:Teleport(game.PlaceId, player) end })
 TabStuff:CreateInput({
-    Name = "Set WalkSpeed 💨",
-    PlaceholderText = "es. 16 (default), 50, 100...",
-    RemoveTextAfterFocusLost = true,
-    Callback = function(text)
-        local v = tonumber(text)
-        if v and player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = v
-        end
-    end
+    Name="Set WalkSpeed 💨", PlaceholderText="es. 16, 50, 100...", RemoveTextAfterFocusLost=true,
+    Callback=function(text) local v=tonumber(text) if v and player.Character and player.Character:FindFirstChild("Humanoid") then player.Character.Humanoid.WalkSpeed=v end end
 })
-
---// ====== EXTRA (OPZIONALI PLACEHOLDER) ======
-local TabExtras = Window:CreateTab("Extras ✨", 6034509995)
-TabExtras:CreateSection("Gadget")
-TabExtras:CreateButton({ Name = "Free Fireball 🔥 (placeholder)", Callback = function() end })
-TabExtras:CreateButton({ Name = "Free Radio 📻 (placeholder)", Callback = function() end })
 
 --// ====== CLAN ======
 local TabClan = Window:CreateTab("Clan 👑", 6034509995)
 TabClan:CreateSection("Join")
 local clanInput = ""
-TabClan:CreateInput({
-    Name = "Clan Name",
-    PlaceholderText = "Scrivi il nome del clan",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(text) clanInput = text end
-})
+TabClan:CreateInput({ Name="Clan Name", PlaceholderText="Scrivi il nome del clan", RemoveTextAfterFocusLost=false, Callback=function(text) clanInput=text end })
 TabClan:CreateButton({
-    Name = "Join Clan",
-    Callback = function()
-        -- Qui dovresti inserire la tua logica di join clan (Remote/Event del gioco se esiste)
-        Rayfield:Notify({
-            Title = "Clan",
-            Content = (clanInput ~= "" and ("Tentativo join a: "..clanInput)) or "Inserisci un nome clan",
-            Duration = 3
-        })
+    Name="Join Clan",
+    Callback=function()
+        Rayfield:Notify({ Title="Clan", Content=(clanInput~="" and ("Tentativo join a: "..clanInput)) or "Inserisci un nome clan", Duration=3 })
     end
 })
 
---// ====== SICUREZZA BASICA ======
--- Se il target muore o esce, l’orbit NON manda in safe: semplicemente continua finché trova di nuovo il target/closest
+--// ====== SAFE CHECK ======
 RunService.Stepped:Connect(function()
     if PVP.orbit and (not currentTarget or not currentTarget.Character or not getAliveHumanoid(currentTarget.Character)) then
         local _, _, myHRP = myChar()
         currentTarget = getClosestPlayer(myHRP, 200)
-        -- il loop orbitAndHit si fermerà e verrà rilanciato dal toggle se serve; qui lo rilanciamo auto
-        if currentTarget then
-            task.spawn(function() orbitAndHit(currentTarget) end)
-        end
+        if currentTarget then task.spawn(function() orbitAndHit(currentTarget) end) end
     end
 end)
