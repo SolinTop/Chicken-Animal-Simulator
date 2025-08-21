@@ -223,77 +223,30 @@ TabMain:CreateToggle({
     end
 })
 
---// ====== TAB: STUFF ======
-local TabStuff = Window:CreateTab("Stuff 🎁", 6034509995)
-TabStuff:CreateSection("Utility")
-
-TabStuff:CreateButton({
-    Name = "Rejoin 🔄",
-    Callback = function()
-        TeleportService:Teleport(game.PlaceId, player)
-    end
-})
-
--- Speed a scelta manuale
-TabStuff:CreateInput({
-    Name = "Set WalkSpeed 💨",
-    PlaceholderText = "es. 16 (default), 50, 100...",
-    RemoveTextAfterFocusLost = true,
-    Callback = function(text)
-        local v = tonumber(text)
-        if v and player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = v
-        end
-    end
-})
-
--- ====== LAG & CRASH SERVER ======
-local lagLoop   = false
-local crashLoop = false
-
--- Toggle Lag Server
-TabStuff:CreateToggle({
-    Name = "Lag Server 🌐",
+-- Chicken Shooter 🐔🔫
+local chickenLoop = false
+TabExtras:CreateToggle({
+    Name = "Chicken Shooter 🐔🔫",
     CurrentValue = false,
     Callback = function(state)
-        lagLoop = state
+        chickenLoop = state
         if state then
             task.spawn(function()
-                while lagLoop do
-                    local hum = findAnyDummy()
-                    if hum then
-                        for i = 1,25 do
-                            attackRemote:FireServer(hum, 6)
-                        end
-                    end
-                    task.wait(0.05)
+                local replicatedStorage = game:GetService("ReplicatedStorage")
+                local chickenEvent = replicatedStorage:FindFirstChild("ChickenEvent")
+                local event = chickenEvent and chickenEvent:FindFirstChild("RemoteEvent")
+                if not event then warn("ChickenEvent.RemoteEvent non trovato!") return end
+
+                local args = { { action = "shoot" } }
+                while chickenLoop do
+                    for i = 1, 250 do event:FireServer(unpack(args)) end
+                    task.wait(0.1)
                 end
             end)
         end
     end
 })
 
--- Toggle Crash Server
-TabStuff:CreateToggle({
-    Name = "Crash Server 💀",
-    CurrentValue = false,
-    Callback = function(state)
-        crashLoop = state
-        if state then
-            task.spawn(function()
-                while crashLoop do
-                    local hum = findAnyDummy()
-                    if hum then
-                        for i = 1,300 do
-                            attackRemote:FireServer(hum, 6)
-                        end
-                    end
-                    task.wait(0.01)
-                end
-            end)
-        end
-    end
-})
 
 --// ====== TAB: PVP ======
 local TabPvP = Window:CreateTab("PvP 🛡️", 6034509995)
