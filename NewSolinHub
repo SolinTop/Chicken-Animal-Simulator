@@ -68,7 +68,7 @@ local function getClosestPlayer(fromRoot, range)
 end
 
 --// ====== LOOP FLAGS ======
-local AF = { coins=false, dummies=false, dummies5k=false, bosses=false }
+local AF = { coins=false, bosses=false, dummies=false, dummies5k=false }
 local PVP = { killAura=false, orbit=false, autoTP=false }
 local currentTarget
 local orbitSpeed = 35
@@ -86,36 +86,60 @@ local function autoCoins()
     end
 end
 
-local function findAnyDummy()
+-- trova dummy
+local function findDummy()
     for _, d in ipairs(dummiesFolder:GetChildren()) do
         local hum = getAliveHumanoid(d)
         if d.Name == "Dummy" and hum then return hum end
     end
 end
 
-local function find5kDummyHum()
+local function find5kDummy()
     if folder5k and folder5k.Parent then
         for _, d in ipairs(folder5k:GetChildren()) do
             local hum = getAliveHumanoid(d)
             if hum then return hum end
         end
     end
-    return nil
 end
 
-local function farmDummies()
+-- Attack Dummy + Fireball + Lightning
+local function attackDummyLoop()
+    local remote = ReplicatedStorage:WaitForChild("SkillsInRS"):WaitForChild("RemoteEvent")
     while AF.dummies do
-        local hum = findAnyDummy()
-        if hum then attackRemote:FireServer(hum, 6) end
-        task.wait(0.1)
+        local hum = findDummy()
+        if hum then
+            local hrp = hum.Parent:FindFirstChild("HumanoidRootPart")
+            local pos = hrp and hrp.Position or Vector3.new()
+
+            -- Hit base
+            attackRemote:FireServer(hum, 2)
+            -- Fireball
+            remote:FireServer(pos, "NewFireball")
+            -- Lightning
+            remote:FireServer(pos, "NewLightningball")
+        end
+        task.wait(0.05)
     end
 end
 
-local function farm5kDummies()
+-- Attack 5k Dummy + Fireball + Lightning
+local function attack5kDummyLoop()
+    local remote = ReplicatedStorage:WaitForChild("SkillsInRS"):WaitForChild("RemoteEvent")
     while AF.dummies5k do
-        local hum = find5kDummyHum()
-        if hum then attackRemote:FireServer(hum, 6) end
-        task.wait(0.1)
+        local hum = find5kDummy()
+        if hum then
+            local hrp = hum.Parent:FindFirstChild("HumanoidRootPart")
+            local pos = hrp and hrp.Position or Vector3.new()
+
+            -- Hit base
+            attackRemote:FireServer(hum, 2)
+            -- Fireball
+            remote:FireServer(pos, "NewFireball")
+            -- Lightning
+            remote:FireServer(pos, "NewLightningball")
+        end
+        task.wait(0.05)
     end
 end
 
@@ -167,8 +191,8 @@ end
 --// ====== TAB: MAIN ======
 local TabMain = Window:CreateTab("Main ⚙️", 6034509995)
 TabMain:CreateToggle({ Name="Auto Coins 💰", CurrentValue=false, Callback=function(v) AF.coins=v if v then task.spawn(autoCoins) end end })
-TabMain:CreateToggle({ Name="Auto Dummies (Trainee) ⚔️", CurrentValue=false, Callback=function(v) AF.dummies=v if v then task.spawn(farmDummies) end end })
-TabMain:CreateToggle({ Name="Auto Dummies 5k ⚔️", CurrentValue=false, Callback=function(v) AF.dummies5k=v if v then task.spawn(farm5kDummies) end end })
+TabMain:CreateToggle({ Name="Auto Dummy ⚔️🔥⚡", CurrentValue=false, Callback=function(v) AF.dummies=v if v then task.spawn(attackDummyLoop) end end })
+TabMain:CreateToggle({ Name="Auto Dummy 5k ⚔️🔥⚡", CurrentValue=false, Callback=function(v) AF.dummies5k=v if v then task.spawn(attack5kDummyLoop) end end })
 TabMain:CreateToggle({ Name="Auto Bosses 🐉", CurrentValue=false, Callback=function(v) AF.bosses=v if v then task.spawn(farmBosses) end end })
 
 --// ====== TAB: PVP ======
@@ -222,7 +246,6 @@ TabExtras:CreateToggle({
     end
 })
 
--- altri gadget placeholder
 TabExtras:CreateButton({ Name="Free Fireball 🔥 (placeholder)", Callback=function() end })
 TabExtras:CreateButton({ Name="Free Radio 📻 (placeholder)", Callback=function() end })
 
