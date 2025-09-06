@@ -1,82 +1,57 @@
---// ====== SERVIZI ======
-local Players            = game:GetService("Players")
-local ReplicatedStorage  = game:GetService("ReplicatedStorage")
-local Workspace          = game:GetService("Workspace")
-local TeleportService    = game:GetService("TeleportService")
-local RunService         = game:GetService("RunService")
-local player             = Players.LocalPlayer
+-- SERVICES
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local player = Players.LocalPlayer
 
--- Remote attacchi
-local attackRemote = ReplicatedStorage:WaitForChild("jdskhfsIIIllliiIIIdchgdIiIIIlIlIli")
+-- ReGui
+local ReGui = loadstring(game:HttpGet("https://raw.githubusercontent.com/depthso/Dear-ReGui/refs/heads/main/ReGui.lua"))()
+local PrefabsId = "rbxassetid://71968920594655"
 
--- Cartelle utili
-local map           = Workspace:WaitForChild("MAP")
-local dummiesFolder = map:WaitForChild("dummies")
-local folder5k      = map:FindFirstChild("5k_dummies")
-
-local bossesList = { "ROCKY","Griffin","BOOSBEAR","BOSSDEER","CENTAUR","CRABBOSS","DragonGiraffe","LavaGorilla" }
-
---// ====== RAYFIELD UI ======
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
-local Window = Rayfield:CreateWindow({
-    Name = "Solin Hub Test",
-    LoadingTitle = "Script Hub",
-    LoadingSubtitle = "By: Solin",
-    ConfigurationSaving = { Enabled = true, FolderName = "SolinHubConfig", FileName = "MainConfig" },
-    Discord = { Enabled = true, Invite = "YAgqvFAC6E", RememberJoins = true },
-    KeySystem = true,
-    KeySettings = {
-        Title = "Solin Hub | Key System 🔑",
-        Subtitle = "Enter the key to continue",
-        Note = "Get the key from our Discord.gg/n7AucXH96x",
-        FileName = "SolinHubKey",
-        SaveKey = true,
-        GrabKeyFromSite = false,
-        Key = {"FreeAccess57"}
-    }
+ReGui:Init({
+	Prefabs = game:GetService("InsertService"):LoadLocalAsset(PrefabsId)
 })
 
---// ====== UTILS ======
-local function myChar()
+local Window = ReGui:TabsWindow({
+	Title = "Solin Hub ⚡",
+	Size = UDim2.new(0, 400, 0, 400),
+}):Center()
+
+-- REMOTES
+local attackRemote = ReplicatedStorage:WaitForChild("jdskhfsIIIllliiIIIdchgdIiIIIlIlIli")
+local skillsRemote = ReplicatedStorage:WaitForChild("SkillsInRS"):WaitForChild("RemoteEvent")
+
+-- FOLDERS
+local map = Workspace:WaitForChild("MAP")
+local dummiesFolder = map:WaitForChild("dummies")
+local folder5k = map:FindFirstChild("5k_dummies")
+local bossesList = { "ROCKY","Griffin","BOOSBEAR","BOSSDEER","CENTAUR","CRABBOSS","DragonGiraffe","LavaGorilla" }
+
+-- FLAGS
+local AF = { coins=false, bosses=false, dummies=false, dummies5k=false, tpDummy=false, tpDummy5k=false }
+local PVP = { killAura=false }
+
+-- UTILS
+local function getCharacter()
     local c = player.Character or player.CharacterAdded:Wait()
     return c, c:WaitForChild("Humanoid"), c:WaitForChild("HumanoidRootPart")
 end
 
 local function getAliveHumanoid(model)
-    if not model then return nil end
-    local hum = model:FindFirstChildOfClass("Humanoid")
+    local hum = model and model:FindFirstChildOfClass("Humanoid")
     if hum and hum.Health > 0 then return hum end
-    return nil
 end
 
-local function getClosestPlayer(fromRoot, range)
-    local best, dist = nil, math.huge
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player and p.Character then
-            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-            local hum = getAliveHumanoid(p.Character)
-            if hrp and hum then
-                local d = (fromRoot.Position - hrp.Position).Magnitude
-                if d < dist and d <= (range or 9999) then
-                    best, dist = p, d
-                end
-            end
-        end
+local function findDummy(folder)
+    for _, d in ipairs(folder:GetChildren()) do
+        local hum = getAliveHumanoid(d)
+        if hum then return d, hum end
     end
-    return best
 end
 
---// ====== LOOP FLAGS ======
-local AF = { coins=false, bosses=false, dummies=false, dummies5k=false }
-local PVP = { killAura=false, orbit=false, autoTP=false }
-local currentTarget
-local orbitSpeed = 35
-local orbitRadius = 5
-local orbitHeight = -4
-local superFastDelay = 0.03
-
---// ====== AUTO FARM FUNZIONI ======
+-- AUTO FARM FUNCTIONS
 local function autoCoins()
     while AF.coins do
         local events = ReplicatedStorage:FindFirstChild("Events")
@@ -86,58 +61,14 @@ local function autoCoins()
     end
 end
 
--- trova dummy
-local function findDummy()
-    for _, d in ipairs(dummiesFolder:GetChildren()) do
-        local hum = getAliveHumanoid(d)
-        if d.Name == "Dummy" and hum then return hum end
-    end
-end
-
-local function find5kDummy()
-    if folder5k and folder5k.Parent then
-        for _, d in ipairs(folder5k:GetChildren()) do
-            local hum = getAliveHumanoid(d)
-            if hum then return hum end
-        end
-    end
-end
-
--- Attack Dummy + Fireball + Lightning
-local function attackDummyLoop()
-    local remote = ReplicatedStorage:WaitForChild("SkillsInRS"):WaitForChild("RemoteEvent")
-    while AF.dummies do
-        local hum = findDummy()
-        if hum then
-            local hrp = hum.Parent:FindFirstChild("HumanoidRootPart")
-            local pos = hrp and hrp.Position or Vector3.new()
-
-            -- Hit base
+local function attackLoop(flag, folder)
+    while AF[flag] do
+        local dummy, hum = findDummy(folder)
+        if dummy and hum and dummy:FindFirstChild("HumanoidRootPart") then
+            local pos = dummy.HumanoidRootPart.Position
             attackRemote:FireServer(hum, 2)
-            -- Fireball
-            remote:FireServer(pos, "NewFireball")
-            -- Lightning
-            remote:FireServer(pos, "NewLightningball")
-        end
-        task.wait(0.05)
-    end
-end
-
--- Attack 5k Dummy + Fireball + Lightning
-local function attack5kDummyLoop()
-    local remote = ReplicatedStorage:WaitForChild("SkillsInRS"):WaitForChild("RemoteEvent")
-    while AF.dummies5k do
-        local hum = find5kDummy()
-        if hum then
-            local hrp = hum.Parent:FindFirstChild("HumanoidRootPart")
-            local pos = hrp and hrp.Position or Vector3.new()
-
-            -- Hit base
-            attackRemote:FireServer(hum, 2)
-            -- Fireball
-            remote:FireServer(pos, "NewFireball")
-            -- Lightning
-            remote:FireServer(pos, "NewLightningball")
+            skillsRemote:FireServer(pos, "NewFireball")
+            skillsRemote:FireServer(pos, "NewLightningball")
         end
         task.wait(0.05)
     end
@@ -157,115 +88,155 @@ local function farmBosses()
     end
 end
 
---// ====== PVP FUNZIONI ======
-local function orbitAndHit(targetPlr)
-    while PVP.orbit do
-        if not targetPlr or not targetPlr.Character then break end
-        local _, _, myHRP = myChar()
-        local trgHRP = targetPlr.Character:FindFirstChild("HumanoidRootPart")
-        local trgHum = getAliveHumanoid(targetPlr.Character)
-        if not myHRP or not trgHRP or not trgHum then break end
-
-        local t = tick()*orbitSpeed
-        local offset = Vector3.new(math.cos(t)*orbitRadius, orbitHeight, math.sin(t)*orbitRadius)
-        myHRP.CFrame = CFrame.new(trgHRP.Position + offset)
-
-        attackRemote:FireServer(trgHum, 5)
-        task.wait(superFastDelay)
-    end
-end
-
-local function autoTPLoop()
-    while PVP.autoTP do
-        if currentTarget and currentTarget.Character then
-            local _, _, myHRP = myChar()
-            local trgHRP = currentTarget.Character:FindFirstChild("HumanoidRootPart")
-            if myHRP and trgHRP then
-                myHRP.CFrame = trgHRP.CFrame * CFrame.new(0, 0, 3)
+-- PVP FUNCTIONS
+local function killAuraLoop()
+    while PVP.killAura do
+        local _, _, hrp = getCharacter()
+        local closest = nil
+        local shortest = math.huge
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (p.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                if dist < shortest then
+                    shortest = dist
+                    closest = p
+                end
             end
         end
-        task.wait(0.25)
+        if closest then
+            attackRemote:FireServer(closest.Character:FindFirstChildOfClass("Humanoid"), 1)
+        end
+        task.wait(0.1)
     end
 end
 
---// ====== TAB: MAIN ======
-local TabMain = Window:CreateTab("Main ⚙️", 6034509995)
-TabMain:CreateToggle({ Name="Auto Coins 💰", CurrentValue=false, Callback=function(v) AF.coins=v if v then task.spawn(autoCoins) end end })
-TabMain:CreateToggle({ Name="Auto Dummy ⚔️🔥⚡", CurrentValue=false, Callback=function(v) AF.dummies=v if v then task.spawn(attackDummyLoop) end end })
-TabMain:CreateToggle({ Name="Auto Dummy 5k ⚔️🔥⚡", CurrentValue=false, Callback=function(v) AF.dummies5k=v if v then task.spawn(attack5kDummyLoop) end end })
-TabMain:CreateToggle({ Name="Auto Bosses 🐉", CurrentValue=false, Callback=function(v) AF.bosses=v if v then task.spawn(farmBosses) end end })
+-- FIREBALL TOOL
+local function giveFireball()
+    local tool = Instance.new("Tool")
+    tool.Name = "Fireball"
+    tool.RequiresHandle = false
+    tool.CanBeDropped = false
+    tool.ManualActivationOnly = false
+    tool.Parent = player:FindFirstChildOfClass("Backpack") or player.Backpack
 
---// ====== TAB: PVP ======
-local TabPVP = Window:CreateTab("PvP 🛡️", 6034509995)
-TabPVP:CreateToggle({ Name="Kill Aura ⚔️", CurrentValue=false, Callback=function(v) PVP.killAura=v end })
-TabPVP:CreateToggle({ Name="Orbit Player 🔄", CurrentValue=false, Callback=function(v)
-    PVP.orbit=v
-    if v and not currentTarget then
-        local _, _, myHRP = myChar()
-        currentTarget = getClosestPlayer(myHRP, 200)
-        if currentTarget then task.spawn(function() orbitAndHit(currentTarget) end) end
+    local mouse = player:GetMouse()
+    local function shoot()
+        if tool and skillsRemote then
+            local pos = mouse.Hit.Position
+            skillsRemote:FireServer(pos, "NewFireball")
+        end
     end
-end })
-TabPVP:CreateToggle({ Name="Auto TP to Player 🌀", CurrentValue=false, Callback=function(v)
-    PVP.autoTP=v
-    if v then task.spawn(autoTPLoop) end
-end })
 
---// ====== TAB: STUFF ======
-local TabStuff = Window:CreateTab("Stuff 🎁", 6034509995)
-TabStuff:CreateSection("Utility")
-TabStuff:CreateButton({ Name="Rejoin 🔄", Callback=function() TeleportService:Teleport(game.PlaceId, player) end })
-TabStuff:CreateInput({
-    Name="Set WalkSpeed 💨", PlaceholderText="es. 16, 50, 100...", RemoveTextAfterFocusLost=true,
-    Callback=function(text) local v=tonumber(text) if v and player.Character and player.Character:FindFirstChild("Humanoid") then player.Character.Humanoid.WalkSpeed=v end end
+    tool.Activated:Connect(shoot)
+    game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if input.UserInputType == Enum.UserInputType.Touch then
+            shoot()
+        end
+    end)
+end
+
+giveFireball()
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    giveFireball()
+end)
+
+-- UI: FARM
+local FarmTab = Window:CreateTab({
+    Name = "Farm"
 })
 
---// ====== TAB: EXTRAS ======
-local TabExtras = Window:CreateTab("Extras ✨", 6034509995)
-TabExtras:CreateSection("Gadget")
+FarmTab:Checkbox({
+    Value = false,
+    Label = "Auto Coins 💰",
+    Callback = function(self, Value)
+        AF.coins = Value
+        if Value then
+            task.spawn(autoCoins)
+        end
+    end
+})
 
--- Chicken Shooter 🐔🔫
-local chickenLoop = false
-TabExtras:CreateToggle({
-    Name = "Chicken Shooter 🐔🔫",
-    CurrentValue = false,
-    Callback = function(state)
-        chickenLoop = state
-        if state then
+FarmTab:Checkbox({
+    Value = false,
+    Label = "Auto Dummy 🔥",
+    Callback = function(self, Value)
+        AF.dummies = Value
+        if Value then
             task.spawn(function()
-                local chickenEvent = ReplicatedStorage:FindFirstChild("ChickenEvent")
-                local event = chickenEvent and chickenEvent:FindFirstChild("RemoteEvent")
-                if not event then warn("ChickenEvent.RemoteEvent non trovato!") return end
-                local args = { { action = "shoot" } }
-                while chickenLoop do
-                    for i = 1, 250 do event:FireServer(unpack(args)) end
-                    task.wait(0.1)
-                end
+                attackLoop("dummies", dummiesFolder)
             end)
         end
     end
 })
 
-TabExtras:CreateButton({ Name="Free Fireball 🔥 (placeholder)", Callback=function() end })
-TabExtras:CreateButton({ Name="Free Radio 📻 (placeholder)", Callback=function() end })
-
---// ====== TAB: CLAN ======
-local TabClan = Window:CreateTab("Clan 👑", 6034509995)
-TabClan:CreateSection("Join")
-local clanInput = ""
-TabClan:CreateInput({ Name="Clan Name", PlaceholderText="Scrivi il nome del clan", RemoveTextAfterFocusLost=false, Callback=function(text) clanInput=text end })
-TabClan:CreateButton({
-    Name="Join Clan",
-    Callback=function()
-        Rayfield:Notify({ Title="Clan", Content=(clanInput~="" and ("Tentativo join a: "..clanInput)) or "Inserisci un nome clan", Duration=3 })
+FarmTab:Checkbox({
+    Value = false,
+    Label = "Auto Dummy 5k 🔥",
+    Callback = function(self, Value)
+        AF.dummies5k = Value
+        if Value then
+            task.spawn(function()
+                attackLoop("dummies5k", folder5k)
+            end)
+        end
     end
 })
 
---// ====== SAFE CHECK ======
-RunService.Stepped:Connect(function()
-    if PVP.orbit and (not currentTarget or not currentTarget.Character or not getAliveHumanoid(currentTarget.Character)) then
-        local _, _, myHRP = myChar()
-        currentTarget = getClosestPlayer(myHRP, 200)
-        if currentTarget then task.spawn(function() orbitAndHit(currentTarget) end) end
+FarmTab:Checkbox({
+    Value = false,
+    Label = "Auto Bosses 🐉",
+    Callback = function(self, Value)
+        AF.bosses = Value
+        if Value then
+            task.spawn(farmBosses)
+        end
+    end
+})
+
+FarmTab:Checkbox({
+    Value = false,
+    Label = "TP to Dummy 📍",
+    Callback = function(self, Value)
+        AF.tpDummy = Value
+    end
+})
+
+FarmTab:Checkbox({
+    Value = false,
+    Label = "TP to Dummy 5k 📍",
+    Callback = function(self, Value)
+        AF.tpDummy5k = Value
+    end
+})
+
+-- UI: PVP
+local PvPTab = Window:CreateTab({
+	Name = "PvP"
+})
+
+PvPTab:Checkbox({
+    Value = false,
+    Label = "Kill Aura ✔️",
+    Callback = function(self, Value)
+        PVP.killAura = Value
+        if Value then
+            task.spawn(killAuraLoop)
+        end
+    end
+})
+
+-- SAFE CHECK & UNIFIED TP
+RunService.RenderStepped:Connect(function()
+    local _, _, hrp = getCharacter()
+    local targetDummy
+    if AF.tpDummy5k and folder5k then
+        targetDummy = findDummy(folder5k)
+    elseif AF.tpDummy then
+        targetDummy = findDummy(dummiesFolder)
+    end
+    if targetDummy and targetDummy[1]:FindFirstChild("HumanoidRootPart") then
+        hrp.CFrame = targetDummy[1].HumanoidRootPart.CFrame + Vector3.new(0,0,4)
     end
 end)
