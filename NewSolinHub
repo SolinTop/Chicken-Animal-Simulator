@@ -15,7 +15,7 @@ ReGui:Init({
 })
 
 local Window = ReGui:TabsWindow({
-	Title = "Solin Hub ⚡",
+	Title = "Animal Simulator SOLIN HUB",
 	Size = UDim2.new(0, 400, 0, 400),
 }):Center()
 
@@ -149,7 +149,7 @@ local FarmTab = Window:CreateTab({
 
 FarmTab:Checkbox({
     Value = false,
-    Label = "Auto Coins 💰",
+    Label = "Auto Coins",
     Callback = function(self, Value)
         AF.coins = Value
         if Value then
@@ -160,7 +160,7 @@ FarmTab:Checkbox({
 
 FarmTab:Checkbox({
     Value = false,
-    Label = "Auto Dummy 🔥",
+    Label = "Auto Dummy",
     Callback = function(self, Value)
         AF.dummies = Value
         if Value then
@@ -173,7 +173,7 @@ FarmTab:Checkbox({
 
 FarmTab:Checkbox({
     Value = false,
-    Label = "Auto Dummy 5k 🔥",
+    Label = "Auto Dummy 5k",
     Callback = function(self, Value)
         AF.dummies5k = Value
         if Value then
@@ -186,7 +186,7 @@ FarmTab:Checkbox({
 
 FarmTab:Checkbox({
     Value = false,
-    Label = "Auto Bosses 🐉",
+    Label = "Auto Bosses",
     Callback = function(self, Value)
         AF.bosses = Value
         if Value then
@@ -197,7 +197,7 @@ FarmTab:Checkbox({
 
 FarmTab:Checkbox({
     Value = false,
-    Label = "TP to Dummy 📍",
+    Label = "TP to Dummy",
     Callback = function(self, Value)
         AF.tpDummy = Value
     end
@@ -205,7 +205,7 @@ FarmTab:Checkbox({
 
 FarmTab:Checkbox({
     Value = false,
-    Label = "TP to Dummy 5k 📍",
+    Label = "TP to Dummy 5k",
     Callback = function(self, Value)
         AF.tpDummy5k = Value
     end
@@ -218,7 +218,7 @@ local PvPTab = Window:CreateTab({
 
 PvPTab:Checkbox({
     Value = false,
-    Label = "Kill Aura ✔️",
+    Label = "Kill Aura",
     Callback = function(self, Value)
         PVP.killAura = Value
         if Value then
