@@ -110,8 +110,11 @@ local function killAuraLoop()
     end
 end
 
--- FIREBALL TOOL FUNCTION
+-- FIREBALL TOOL
 local function giveFireball()
+    if player.Backpack:FindFirstChild("Fireball") or player.Character:FindFirstChild("Fireball") then
+        return
+    end
     local tool = Instance.new("Tool")
     tool.Name = "Fireball"
     tool.RequiresHandle = false
@@ -120,14 +123,11 @@ local function giveFireball()
     tool.Parent = player:FindFirstChildOfClass("Backpack") or player.Backpack
 
     local mouse = player:GetMouse()
-    local function shoot()
-        if tool and skillsRemote then
-            local pos = mouse.Hit.Position
-            skillsRemote:FireServer(pos, "NewFireball")
+    tool.Activated:Connect(function()
+        if skillsRemote then
+            skillsRemote:FireServer(mouse.Hit.Position, "NewFireball")
         end
-    end
-
-    tool.Activated:Connect(shoot)
+    end)
 end
 
 giveFireball()
@@ -138,96 +138,45 @@ end)
 
 -- UI: FARM TAB
 local FarmTab = Window:CreateTab({ Name = "Farm" })
+FarmTab:Checkbox({ Value=false, Label="Auto Coins", Callback=function(self, Value) AF.coins=Value if Value then task.spawn(autoCoins) end end})
+FarmTab:Checkbox({ Value=false, Label="Auto Dummy", Callback=function(self, Value) AF.dummies=Value if Value then task.spawn(function() attackLoop("dummies", dummiesFolder) end) end end})
+FarmTab:Checkbox({ Value=false, Label="Auto Dummy 5k", Callback=function(self, Value) AF.dummies5k=Value if Value then task.spawn(function() attackLoop("dummies5k", folder5k) end) end end})
+FarmTab:Checkbox({ Value=false, Label="Auto Bosses", Callback=function(self, Value) AF.bosses=Value if Value then task.spawn(farmBosses) end end})
+FarmTab:Checkbox({ Value=false, Label="TP to Dummy", Callback=function(self, Value) AF.tpDummy=Value end})
+FarmTab:Checkbox({ Value=false, Label="TP to Dummy 5k", Callback=function(self, Value) AF.tpDummy5k=Value end})
 
-FarmTab:Checkbox({ Value=false, Label="Auto Coins", Callback=function(self, Value)
-    AF.coins = Value
-    if Value then task.spawn(autoCoins) end
-end})
-
-FarmTab:Checkbox({ Value=false, Label="Auto Dummy", Callback=function(self, Value)
-    AF.dummies = Value
-    if Value then task.spawn(function() attackLoop("dummies", dummiesFolder) end) end
-end})
-
-FarmTab:Checkbox({ Value=false, Label="Auto Dummy 5k", Callback=function(self, Value)
-    AF.dummies5k = Value
-    if Value then task.spawn(function() attackLoop("dummies5k", folder5k) end) end
-end})
-
-FarmTab:Checkbox({ Value=false, Label="Auto Bosses", Callback=function(self, Value)
-    AF.bosses = Value
-    if Value then task.spawn(farmBosses) end
-end})
-
-FarmTab:Checkbox({ Value=false, Label="TP to Dummy", Callback=function(self, Value)
-    AF.tpDummy = Value
-end})
-
-FarmTab:Checkbox({ Value=false, Label="TP to Dummy 5k", Callback=function(self, Value)
-    AF.tpDummy5k = Value
-end})
-
--- UI: PVP TAB
+-- UI: PvP TAB
 local PvPTab = Window:CreateTab({ Name = "PvP" })
+PvPTab:Checkbox({ Value=false, Label="Kill Aura", Callback=function(self, Value) PVP.killAura=Value if Value then task.spawn(killAuraLoop) end end})
 
-PvPTab:Checkbox({ Value=false, Label="Kill Aura", Callback=function(self, Value)
-    PVP.killAura = Value
-    if Value then task.spawn(killAuraLoop) end
-end})
-
--- UI: TROLL TAB
+-- UI: Troll TAB
 local TrollTab = Window:CreateTab({ Name = "Troll" })
 TrollTab:Label({ Text = "Coming Soon..." })
-TrollTab:Button({ Label="Test Button", Callback=function()
-    print("You pressed the Troll button!")
-end})
 
--- UI: SKIN / EVENTS TAB
+-- UI: Skin / Events TAB
 local SkinEventsTab = Window:CreateTab({ Name = "Skin / Events" })
 SkinEventsTab:Label({ Text = "Coming Soon..." })
 
--- UI: MISCELLANEOUS TAB
+-- UI: Miscellaneous TAB
 local MiscTab = Window:CreateTab({ Name = "Miscellaneous" })
-MiscTab:Label({ Text = "Miscellaneous Options" })
-MiscTab:Button({
-    Label = "Free Fire",
-    Callback = function()
-        local tool = Instance.new("Tool")
-        tool.Name = "Fireball"
-        tool.RequiresHandle = false
-        tool.CanBeDropped = false
-        tool.ManualActivationOnly = false
-        tool.Parent = player:FindFirstChildOfClass("Backpack") or player.Backpack
+MiscTab:Label({ Text = "Coming Soon..." })
 
-        local mouse = player:GetMouse()
-        local function shoot()
-            if tool and skillsRemote then
-                local pos = mouse.Hit.Position
-                skillsRemote:FireServer(pos, "NewFireball")
-            end
-        end
-
-        tool.Activated:Connect(shoot)
-    end
-})
-
--- UI: WEBHOOK TAB
+-- UI: Webhook TAB
 local WebhookTab = Window:CreateTab({ Name = "Webhook" })
 WebhookTab:Label({ Text = "Coming Soon..." })
 
--- UI: SETTINGS TAB
+-- UI: Settings TAB
 local SettingsTab = Window:CreateTab({ Name = "Settings" })
-SettingsTab:Label({ Text = "Coming Soon..." })
+SettingsTab:Label({ Text = "[V] Toggle UI remove sound and GUI of reward" })
+SettingsTab:Label({ Text = "if you have a problem please join in our discord support link server: https://discord.gg/4tH9dxBK" })
 
--- UI: SCRIPT TAB
+-- UI: Script TAB
 local ScriptTab = Window:CreateTab({ Name = "Script" })
 ScriptTab:Label({ Text = "Coming Soon..." })
 
--- UI: READ ME TAB
+-- UI: Read Me TAB
 local ReadMeTab = Window:CreateTab({ Name = "Read Me" })
-ReadMeTab:Label({
-    Text = "• This UI library was created by depso. Thanks.\n• Owner Of Script: Solin\n• Script & Management By: awb04"
-})
+ReadMeTab:Label({ Text = "• This UI library was created by depso. Thanks.\n• Owner Of Script: Solin\n• Script & Management By: awb04" })
 
 -- SAFE CHECK & UNIFIED TP
 RunService.RenderStepped:Connect(function()
@@ -238,7 +187,7 @@ RunService.RenderStepped:Connect(function()
     elseif AF.tpDummy then
         targetDummy = findDummy(dummiesFolder)
     end
-    if targetDummy and targetDummy[1]:FindFirstChild("HumanoidRootPart") then
+    if targetDummy and targetDummy[1] and targetDummy[1]:FindFirstChild("HumanoidRootPart") then
         hrp.CFrame = targetDummy[1].HumanoidRootPart.CFrame + Vector3.new(0,0,4)
     end
 end)
